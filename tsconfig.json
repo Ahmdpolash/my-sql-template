@@ -1,0 +1,21 @@
+{
+  "include": ["src"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "es2016",
+
+    /* Modules */
+    "module": "commonjs",
+    "rootDir": "./src",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* Emit */
+    "outDir": "./dist",
+
+    /* Type Checking */
+    "strict": true,
+    "skipLibCheck": true
+  }
+}
