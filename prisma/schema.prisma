@@ -16,10 +16,27 @@ model User {
   isVerified Boolean    @default(false)
   role       UserRole   @default(USER)
   status     UserStatus @default(Active)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Otp       Otp[]
 
   @@map("users")
+}
+
+model Otp {
+  id          String   @id @default(uuid())
+  otpCode     String
+  expiresAt   DateTime
+  userId      String
+  minAttempts Int      @default(0)
+  maxAttempts Int      @default(4)
+  isUsed      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("otps")
 }
 
 enum UserRole {

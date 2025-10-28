@@ -1,7 +1,7 @@
 import { UserRole, UserStatus } from "@prisma/client";
-import { prisma } from "./app/utils/prisma";
 import { hashPassword } from "./app/helpers/hashPassword";
 import config from "./app/config";
+import prisma from "./app/utils/prisma";
 
 export const seedSuperAdmin = async () => {
   try {

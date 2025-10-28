@@ -1,50 +1,46 @@
 import { User } from "@prisma/client";
-import { prisma } from "../../utils/prisma";
-import { hashPassword } from "../../helpers/hashPassword";
-import { passwordCompare } from "../../helpers/comparePasswords";
-import { jwtHelpers } from "../../helpers/jwtHelpers";
 import config from "../../config";
 import AppError from "../../errors/AppError";
+import { passwordCompare } from "../../helpers/comparePasswords";
+import { jwtHelpers } from "../../helpers/jwtHelpers";
 import { httpStatus } from "../../utils/httpStatus";
+import prisma from "../../utils/prisma";
+import { hashPassword } from "../../helpers/hashPassword";
+import { OtpService } from "../otp/otp.service";
 
-const registerUser = async (payload: {
-  fullName: string;
-  email: string;
-  password: string;
-}) => {
-  // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email: payload.email },
+const registerUser = async (payload: User) => {
+  const isUserExists = await prisma.user.findFirst({
+    where: {
+      email: payload.email,
+    },
   });
 
-  if (existingUser) {
+  if (isUserExists) {
     throw new AppError(
       httpStatus.CONFLICT,
-      "User already exists with this email"
+      `User with email ${payload.email} already Registered`
     );
   }
 
-  // Hash password
-  const hashedPassword = await hashPassword(payload.password);
+  // hash password
+  const hashNewPassword = await hashPassword(payload.password);
 
-  // Create user
-  const user = await prisma.user.create({
-    data: {
-      fullName: payload.fullName,
-      email: payload.email,
-      password: hashedPassword,
-    },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      role: true,
-      isVerified: true,
-      createdAt: true,
-    },
+  // create user
+  const result = await prisma.user.create({
+    data: { ...payload, password: hashNewPassword, isVerified: false },
   });
 
-  return user;
+  if (!result) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Failed to register user");
+  }
+
+  // sent otp
+
+  if (result) {
+    await OtpService.sentOtp(payload.email);
+  }
+
+  return result;
 };
 
 const loginUser = async (email: string, password: string) => {
@@ -64,13 +60,13 @@ const loginUser = async (email: string, password: string) => {
   }
 
   // Generate tokens
-  const accessToken = jwtHelpers.createToken(
+  const accessToken = jwtHelpers.generateJwtToken(
     { id: user.id, email: user.email, role: user.role },
     config.jwt.access.secret as string,
     config.jwt.access.expiresIn as string
   );
 
-  const refreshToken = jwtHelpers.createToken(
+  const refreshToken = jwtHelpers.generateJwtToken(
     { id: user.id, email: user.email, role: user.role },
     config.jwt.refresh.secret as string,
     config.jwt.refresh.expiresIn as string
@@ -132,7 +128,6 @@ const changePassword = async (
     where: { email },
     data: {
       password: hashedNewPassword,
-      passwordChangedAt: new Date(),
     },
   });
 
@@ -177,7 +172,7 @@ const refreshToken = async (refreshToken: string) => {
   }
 
   // Generate new access token
-  const accessToken = jwtHelpers.createToken(
+  const accessToken = jwtHelpers.generateJwtToken(
     { id: user.id, email: user.email, role: user.role },
     config.jwt.access.secret as string,
     config.jwt.access.expiresIn as string

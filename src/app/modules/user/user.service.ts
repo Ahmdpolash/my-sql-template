@@ -1,7 +1,7 @@
 import { User, UserRole } from "@prisma/client";
-import { prisma } from "../../utils/prisma";
 import AppError from "../../errors/AppError";
 import { httpStatus } from "../../utils/httpStatus";
+import prisma from "../../utils/prisma";
 
 const getAllUsers = async (query: {
   page?: string;
