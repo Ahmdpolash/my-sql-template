@@ -3,7 +3,6 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { AuthService } from "./auth.service";
 
-
 // register user
 const register = catchAsync(async (req, res) => {
   const result = await AuthService.registerUser(req.body);
@@ -11,12 +10,9 @@ const register = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "User Registered successfully! Please Verify Your Email",
-    data: result,
+    data: null,
   });
 });
-
-
-
 
 const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
@@ -36,6 +32,17 @@ const login = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     message: "User logged in successfully!",
     data: { accessToken, user },
+  });
+});
+
+//verify otp
+const verifyOtp = catchAsync(async (req, res) => {
+  const { email, otp } = req.body;
+  await AuthService.verifyOtp(email, otp);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "User Verified Successfully",
+    data: null,
   });
 });
 
@@ -86,4 +93,5 @@ export const AuthController = {
   changePassword,
   getMe,
   refreshToken,
+  verifyOtp,
 };

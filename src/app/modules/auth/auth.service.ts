@@ -85,6 +85,62 @@ const loginUser = async (email: string, password: string) => {
   };
 };
 
+// verify
+const verifyOtp = async (email: string, otp: number) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      email: email,
+    },
+    include: {
+      Otp: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.isVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User already verified");
+  }
+
+  const otpRecord = user.Otp[0];
+
+  // check the otp expiry or not
+  const isValidOtp = otpRecord && otpRecord.expiresAt > new Date();
+  if (!isValidOtp) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "OTP has expired. Please request a new one."
+    );
+  }
+
+  // check otp match
+  const isOtpMatch = otpRecord && otpRecord.otpCode === String(otp);
+  if (!isOtpMatch) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+  }
+
+  await prisma.$transaction(async (trx) => {
+    await trx.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        isVerified: true,
+      },
+    });
+
+    await trx.otp.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
+  });
+
+  return null
+};
+
 const changePassword = async (
   email: string,
   currentPassword: string,
@@ -187,4 +243,5 @@ export const AuthService = {
   changePassword,
   getMe,
   refreshToken,
+  verifyOtp,
 };

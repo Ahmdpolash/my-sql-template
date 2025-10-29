@@ -19,6 +19,8 @@ router.post(
   AuthController.login
 );
 
+router.post("/verify-otp", AuthController.verifyOtp);
+
 router.put(
   "/change-password",
   auth(UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
