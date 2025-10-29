@@ -8,7 +8,7 @@ const updateUserValidationSchema = z.object({
 });
 
 const getAllUsersValidationSchema = z.object({
-  query: z.object({
+  body: z.object({
     page: z.string().optional(),
     limit: z.string().optional(),
     searchTerm: z.string().optional(),

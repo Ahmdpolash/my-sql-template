@@ -2,56 +2,26 @@ import { User, UserRole } from "@prisma/client";
 import AppError from "../../errors/AppError";
 import { httpStatus } from "../../utils/httpStatus";
 import prisma from "../../utils/prisma";
+import QueryBuilder from "../../builder/QueryBuilder";
 
-const getAllUsers = async (query: {
-  page?: string;
-  limit?: string;
-  searchTerm?: string;
-}) => {
-  const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 10;
-  const skip = (page - 1) * limit;
+const getAllUsers = async (query: Record<string, unknown>) => {
+  const userQuery = new QueryBuilder(prisma.user, query)
+    .search(["fullName", "email"])
+    .select(["id", "email", "fullName", "profilePic", "status", "role"])
+    .paginate();
 
-  const searchTerm = query.searchTerm || "";
-
-  const whereCondition = searchTerm
-    ? {
-        OR: [
-          { fullName: { contains: searchTerm, mode: "insensitive" as const } },
-          { email: { contains: searchTerm, mode: "insensitive" as const } },
-        ],
-      }
-    : {};
-
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where: whereCondition,
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        role: true,
-        isVerified: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.user.count({ where: whereCondition }),
+  const [result, meta] = await Promise.all([
+    userQuery.execute(),
+    userQuery.countTotal(),
   ]);
 
-  const totalPage = Math.ceil(total / limit);
+  if (!result.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "No users found!");
+  }
 
   return {
-    users,
-    meta: {
-      page,
-      limit,
-      total,
-      totalPage,
-    },
+    meta,
+    result,
   };
 };
 

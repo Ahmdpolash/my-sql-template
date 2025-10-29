@@ -64,7 +64,7 @@ export const sendEmail = async (to: string, otp: number) => {
   await transporter.sendMail({
     from: `"Test Project" <${config.sendEmail.brevo_email}>`,
     to,
-    subject: "Email Verification",
+    subject: "OTP Verification",
     text: `Your OTP code is: ${otp}`,
     html: html,
   });

@@ -10,7 +10,6 @@ const router = Router();
 router.get(
   "/",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  validateRequest(UserValidation.getAllUsersValidationSchema),
   UserController.getAllUsers
 );
 

@@ -186,7 +186,7 @@ const resendSignUpOtp = async (email: string) => {
   };
 };
 
-//send otp
+// verify otp
 const verifyOtp = async (email: string, otp: number) => {
   const user = await prisma.user.findUnique({
     where: {

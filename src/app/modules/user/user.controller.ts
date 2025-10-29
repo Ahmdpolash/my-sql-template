@@ -8,8 +8,8 @@ const getAllUsers = catchAsync(async (req, res) => {
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Users fetched successfully!",
-    data: result.users,
+    message: "All Users retrieved Successfully",
+    data: result.result,
     meta: result.meta,
   });
 });
