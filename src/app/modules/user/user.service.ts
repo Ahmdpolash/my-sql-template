@@ -19,9 +19,14 @@ const getAllUsers = async (query: Record<string, unknown>) => {
     throw new AppError(httpStatus.NOT_FOUND, "No users found!");
   }
 
+  const data = result.map((user: User) => {
+    const { password, ...rest } = user;
+    return rest;
+  });
+
   return {
     meta,
-    result,
+    data,
   };
 };
 

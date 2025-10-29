@@ -9,7 +9,7 @@ const getAllUsers = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: "All Users retrieved Successfully",
-    data: result.result,
+    data: result.data,
     meta: result.meta,
   });
 });

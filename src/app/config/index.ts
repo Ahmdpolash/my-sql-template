@@ -34,5 +34,7 @@ export default {
   url: {
     backend: process.env.BACKEND_URL || "http://localhost:5000",
     frontend: process.env.FRONTEND_URL || "http://localhost:3000",
+    image: process.env.IMAGE_URL,
+    file: process.env.FILE_URL,
   },
 };
