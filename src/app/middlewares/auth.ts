@@ -2,10 +2,10 @@ import { NextFunction, Request, Response } from "express";
 import { UserRole } from "@prisma/client";
 import config from "../config";
 import { jwtHelpers } from "../helpers/jwtHelpers";
-import { prisma } from "../utils/prisma";
 import AppError from "../errors/AppError";
 import { httpStatus } from "../utils/httpStatus";
 import { JwtPayload } from "jsonwebtoken";
+import prisma from "../utils/prisma";
 
 const auth = (...requiredRoles: UserRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {

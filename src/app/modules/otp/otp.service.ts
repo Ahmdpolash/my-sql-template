@@ -21,7 +21,7 @@ const sentOtp = async (email: string) => {
   await prisma.$transaction(async (trx) => {
     await trx.otp.create({
       data: {
-        otpCode: String(otp),
+        otpCode: otp,
         expiresAt: expiresAt,
         userId: user.id,
       },

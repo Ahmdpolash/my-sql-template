@@ -20,7 +20,7 @@ export const sendEmail = async (to: string, otp: number) => {
   const html = `
   <div style="font-family: Arial, sans-serif; background-color: #f7f9fc; padding: 30px 0; color: #333333;">
     <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #e0e0e0;">
-      
+
       <table style="width: 100%; padding: 20px;">
         <tr>
           <td style="text-align: left;">
@@ -31,11 +31,11 @@ export const sendEmail = async (to: string, otp: number) => {
       </table>
 
       <div style="padding: 0 30px 30px 30px; text-align: center;">
-        
+
         <h1 style="color: #1a73e8; font-size: 24px; margin-top: 20px; margin-bottom: 20px;">
-         Email Verification 
+         OTP Verification
         </h1>
-        
+
         <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
           Use the following code to complete your verification process.
         </p>
@@ -52,7 +52,7 @@ export const sendEmail = async (to: string, otp: number) => {
         <p style="font-size: 14px; color: #e53935; font-weight: bold; margin-bottom: 30px;">
           This code will expire in 5 minutes.
         </p>
-        
+
         <p style="font-size: 14px; line-height: 1.5; color: #757575; border-top: 1px solid #eeeeee; padding-top: 20px;">
           **Security Tip:** Do not share this code with anyone. If you didn't request this, you can safely ignore this email.
         </p>

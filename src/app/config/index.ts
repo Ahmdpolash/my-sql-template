@@ -11,11 +11,11 @@ export default {
   jwt: {
     access: {
       secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "1h",
+      expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "30d",
     },
     refresh: {
       secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "5y",
     },
   },
   superAdmin: {

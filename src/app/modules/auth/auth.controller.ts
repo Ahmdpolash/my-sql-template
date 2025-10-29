@@ -14,6 +14,7 @@ const register = catchAsync(async (req, res) => {
   });
 });
 
+//login
 const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
@@ -21,12 +22,13 @@ const login = catchAsync(async (req, res) => {
 
   const { accessToken, refreshToken, user } = result;
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
+  // res.cookie("refreshToken", refreshToken, {
+  //   httpOnly: true,
+  //   secure: false,
+  //   sameSite: "lax",
+  //   maxAge: 24 * 60 * 60 * 1000,
+  // });
+  res.cookie("token", result.accessToken, { httpOnly: true });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -35,17 +37,53 @@ const login = catchAsync(async (req, res) => {
   });
 });
 
-//verify otp
-const verifyOtp = catchAsync(async (req, res) => {
+//verify signupt otp
+const verifySignUpOtp = catchAsync(async (req, res) => {
   const { email, otp } = req.body;
-  await AuthService.verifyOtp(email, otp);
+  await AuthService.verifySignUpOtp(email, otp);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: "User Verified Successfully",
     data: null,
   });
 });
+//resend signup otp
+const resendSignUpOtp = catchAsync(async (req, res) => {
+  const { email } = req.body;
 
+  const result = await AuthService.resendSignUpOtp(email);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: result.message,
+  });
+});
+
+// verify otp(eg: forgot pass)
+const verifyOtp = catchAsync(async (req, res) => {
+  const { email, otp } = req.body;
+
+  const result = await AuthService.verifyOtp(email, otp);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Otp verified successfully",
+  });
+});
+
+// resend otp (eg:forgot pass
+const resendOtp = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  const result = await AuthService.resendOtp(email);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "OTP Resent Successfully",
+  });
+});
+
+// change password
 const changePassword = catchAsync(async (req, res) => {
   const email = req.user?.email as string;
   const { currentPassword, newPassword, confirmPassword } = req.body;
@@ -63,6 +101,18 @@ const changePassword = catchAsync(async (req, res) => {
   });
 });
 
+// forget password
+const forgetPassword = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  const result = await AuthService.forgetPassword(email);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: result.message,
+  });
+});
+
+// get me
 const getMe = catchAsync(async (req, res) => {
   const email = req.user?.email as string;
 
@@ -75,6 +125,7 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
+// refresh token
 const refreshToken = catchAsync(async (req, res) => {
   const { refreshToken } = req.cookies;
 
@@ -93,5 +144,9 @@ export const AuthController = {
   changePassword,
   getMe,
   refreshToken,
+  verifySignUpOtp,
+  resendSignUpOtp,
   verifyOtp,
+  resendOtp,
+  forgetPassword,
 };

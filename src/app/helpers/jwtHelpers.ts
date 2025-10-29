@@ -42,7 +42,7 @@ export const accessTokenOptions: ITokenOptions = {
 
 // Refresh Token Cookie Options
 export const refreshTokenOptions: ITokenOptions = {
-  expires: new Date(Date.now() + refreshTokenExpireDays * 24 * 60 * 60 * 1000),
+  expires: new Date(Date.now() + refreshTokenExpireDays * 24 * 60 * 60 * 1000), 
   maxAge: refreshTokenExpireDays * 24 * 60 * 60 * 1000,
   httpOnly: true,
   sameSite: config.NODE_ENV === "production" ? "none" : "lax",
