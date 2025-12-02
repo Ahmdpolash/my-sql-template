@@ -2,4 +2,5 @@
 dist
 .vscode
 generated
-node_modules 
+node_modules  
+.env
