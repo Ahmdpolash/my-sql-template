@@ -329,6 +329,45 @@ const forgetPassword = async (email: string) => {
   };
 };
 
+// reset password
+const resetPassword = async (
+  email: string,
+  newPassword: string,
+  confirmPassword: string
+) => {
+  if (newPassword !== confirmPassword) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "New password and confirm password do not match"
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      email: email,
+    },
+  });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const hashedPassword = await hashPassword(newPassword);
+
+  const result = await prisma.user.update({
+    where: {
+      email: email,
+    },
+    data: {
+      password: hashedPassword,
+    },
+  });
+
+  return {
+    message: "Password reset successfully",
+  };
+};
+
 // get me
 
 const getMe = async (email: string) => {
@@ -394,4 +433,5 @@ export const AuthService = {
   verifyOtp,
   resendOtp,
   forgetPassword,
+  resetPassword,
 };
