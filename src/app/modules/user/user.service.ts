@@ -6,8 +6,8 @@ import QueryBuilder from "../../builder/QueryBuilder";
 
 const getAllUsers = async (query: Record<string, unknown>) => {
   const userQuery = new QueryBuilder(prisma.user, query)
-    .search(["fullName", "email"])
-    .select(["id", "email", "fullName", "profilePic", "status", "role"])
+    .search(["name", "email"])
+    .select(["id", "email", "name", "profilePic", "status", "role"])
     .paginate();
 
   const [result, meta] = await Promise.all([
@@ -35,7 +35,7 @@ const getUserById = async (userId: string) => {
     where: { id: userId },
     select: {
       id: true,
-      fullName: true,
+      name: true,
       email: true,
       role: true,
       isVerified: true,
@@ -71,7 +71,7 @@ const updateUser = async (
     data: payload,
     select: {
       id: true,
-      fullName: true,
+      name: true,
       email: true,
       role: true,
       isVerified: true,
@@ -113,7 +113,7 @@ const updateUserRole = async (userId: string, role: UserRole) => {
     data: { role },
     select: {
       id: true,
-      fullName: true,
+      name: true,
       email: true,
       role: true,
       isVerified: true,

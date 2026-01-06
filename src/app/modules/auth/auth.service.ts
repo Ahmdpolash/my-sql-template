@@ -55,6 +55,13 @@ const loginUser = async (email: string, password: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
+  if (!user.isVerified) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Your account is not verified. Please verify your account first."
+    );
+  }
+
   // Check user status before allowing login
   if (user.status === UserStatus.Inactive) {
     throw new AppError(
@@ -94,7 +101,7 @@ const loginUser = async (email: string, password: string) => {
     refreshToken,
     user: {
       id: user.id,
-      fullName: user.fullName,
+      name: user.name,
       email: user.email,
       role: user.role,
       isVerified: user.isVerified,
@@ -186,7 +193,7 @@ const resendSignUpOtp = async (email: string) => {
   };
 };
 
-// verify otp
+// verify otp (eg: forgot password)
 const verifyOtp = async (email: string, otp: number) => {
   const user = await prisma.user.findUnique({
     where: {
@@ -375,7 +382,7 @@ const getMe = async (email: string) => {
     where: { email },
     select: {
       id: true,
-      fullName: true,
+      name: true,
       email: true,
       role: true,
       isVerified: true,
@@ -394,6 +401,11 @@ const getMe = async (email: string) => {
 // refresh token
 
 const refreshToken = async (refreshToken: string) => {
+
+  if (!refreshToken) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Refresh token is required");
+  }
+
   // Verify refresh token
   const decoded = jwtHelpers.verifyToken(
     refreshToken,

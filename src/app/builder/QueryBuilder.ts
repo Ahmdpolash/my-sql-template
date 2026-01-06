@@ -32,7 +32,7 @@ class QueryBuilder {
     for (const [key, value] of Object.entries(queryObj)) {
       if (typeof value === "string" && value.includes("[")) {
         const [field, operator] = key.split("[");
-        const op = operator.slice(0, -1); // Remove the closing ']'
+        const op = operator.slice(0, -1); 
         formattedFilters[field] = { [`${op}`]: parseFloat(value as string) };
       } else {
         formattedFilters[key] = value;

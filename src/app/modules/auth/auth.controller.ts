@@ -22,13 +22,14 @@ const login = catchAsync(async (req, res) => {
 
   const { accessToken, refreshToken, user } = result;
 
-  // res.cookie("refreshToken", refreshToken, {
-  //   httpOnly: true,
-  //   secure: false,
-  //   sameSite: "lax",
-  //   maxAge: 24 * 60 * 60 * 1000,
-  // });
-  res.cookie("token", result.accessToken, { httpOnly: true });
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  //res.cookie("token", result.accessToken, { httpOnly: true });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
