@@ -160,6 +160,12 @@ const verifySignUpOtp = async (email: string, otp: number) => {
         userId: user.id,
       },
     });
+
+
+    
+
+
+
   });
 
   return null;

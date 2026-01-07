@@ -32,6 +32,13 @@ router.delete(
   UserController.deleteUser
 );
 
+// soft delete
+router.delete(
+  "soft/:userId",
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
+  UserController.softDeleteUser
+);
+
 router.patch(
   "/:userId/role",
   auth(UserRole.SUPER_ADMIN),

@@ -161,13 +161,7 @@ export const sendBulkEmail = async (
 
 /*    
 
-
-
-
-
 sendEmail(normalizedEmail, "✅ Email Verified Successfully - Welcome!", successEmailContent)
-
-
 
 
 */

@@ -99,6 +99,33 @@ const deleteUser = async (userId: string) => {
   return { message: "User deleted successfully" };
 };
 
+const softDeleteUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { status: "Inactive" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  if (!updatedUser) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return updatedUser;
+};
+
 const updateUserRole = async (userId: string, role: UserRole) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -131,4 +158,5 @@ export const UserService = {
   updateUser,
   deleteUser,
   updateUserRole,
+  softDeleteUser,
 };

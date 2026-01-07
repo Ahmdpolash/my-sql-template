@@ -43,6 +43,15 @@ const deleteUser = catchAsync(async (req, res) => {
   });
 });
 
+const softDeleteUser = catchAsync(async (req, res) => {
+  const result = await UserService.softDeleteUser(req.params.userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "User deleted successfully!",
+  });
+});
+
 const updateUserRole = catchAsync(async (req, res) => {
   const result = await UserService.updateUserRole(
     req.params.userId,
@@ -62,4 +71,5 @@ export const UserController = {
   updateUser,
   deleteUser,
   updateUserRole,
+  softDeleteUser,
 };
