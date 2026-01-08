@@ -25,7 +25,7 @@ router.post(
 router.post("/verify-signup-otp", AuthController.verifySignUpOtp);
 
 // resent signup otp
-router.post("/resend-signup-otp", AuthController.resendSignUpOtp);
+router.post("/resend-otp/signup", AuthController.resendSignUpOtp);
 
 // verify otp (eg: forgot password)
 router.post("/verify-otp", AuthController.verifyOtp);
@@ -43,7 +43,7 @@ router.put(
 router.post("/forget-password", AuthController.forgetPassword);
 
 // resend otp (eg:forgot pass)
-router.post("/resend-otp", AuthController.resendOtp);
+router.post("/resend-otp/forgot-password", AuthController.resendOtp);
 
 //reset pass
 router.post("/reset-password", AuthController.resetPassword);

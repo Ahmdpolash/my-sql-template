@@ -21,7 +21,7 @@ interface IEmailTemplate {
 const transporter = nodemailer.createTransport({
   host: config.smtp.host,
   port: config.smtp.port,
-  //   secure: config.smtp.secure, // false for 587, true for 465
+  secure: config.smtp.secure, // false for 587, true for 465
   auth: {
     user: config.smtp.brevo_user,
     pass: config.smtp.brevo_pass,

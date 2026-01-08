@@ -32,7 +32,7 @@ export default {
     brevo_email: process.env.BREVO_EMAIL,
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
+    secure: process.env.SMTP_SECURE === "true",
     from_name: process.env.SMTP_NAME,
   },
 
