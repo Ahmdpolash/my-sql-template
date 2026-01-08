@@ -10,6 +10,8 @@ import { OtpService } from "../otp/otp.service";
 import { sendOTPEmail, sendWelcomeEmail } from "../../utils/emailSender";
 import generateOtp from "../../helpers/generateOtp";
 
+type OTPType = "SIGNUP" | "FORGOT_PASSWORD";
+
 // register
 const registerUser = async (payload: User) => {
   const isUserExists = await prisma.user.findFirst({
@@ -200,10 +202,20 @@ const resendSignUpOtp = async (email: string) => {
     );
   }
 
-  await prisma.otp.deleteMany({
-    where: {
-      userId: user.id,
-    },
+  const result = await prisma.$transaction(async (trx) => {
+    await trx.otp.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    // sent otp email
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    await sendOTPEmail(user.email, String(otp), "SIGNUP").catch((error) => {
+      console.error("Failed to send email:", error);
+    });
   });
 
   await OtpService.sentOtp(user.email);
@@ -252,8 +264,8 @@ const verifyOtp = async (email: string, otp: number) => {
   return null;
 };
 
-// resent otp (eg: forgot pass)
-const resendOtp = async (email: string) => {
+// resent otp (reusable)
+const resendOtp = async (email: string, type: OTPType) => {
   const user = await prisma.user.findUnique({
     where: { email },
     include: {
@@ -267,13 +279,32 @@ const resendOtp = async (email: string) => {
       `User with email ${email} not found`
     );
   }
-  await prisma.otp.deleteMany({
-    where: {
-      userId: user.id,
-    },
-  });
 
-  await OtpService.sentOtp(user.email);
+  await prisma.$transaction(async (trx) => {
+    await trx.otp.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    // sent otp email
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    const result = await prisma.otp.create({
+      data: {
+        otpCode: otp,
+        expiresAt: expiresAt,
+        userId: user.id,
+      },
+    });
+
+    if (result) {
+      await sendOTPEmail(user.email, String(otp), type).catch((error) => {
+        console.error("Failed to send email:", error);
+      });
+    }
+  });
 
   return null;
 };

@@ -52,11 +52,11 @@ const verifySignUpOtp = catchAsync(async (req, res) => {
 const resendSignUpOtp = catchAsync(async (req, res) => {
   const { email } = req.body;
 
-  const result = await AuthService.resendSignUpOtp(email);
+  await AuthService.resendOtp(email, "SIGNUP");
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
-    message: result.message,
+    message: "OTP Resent Successfully",
   });
 });
 
@@ -64,7 +64,7 @@ const resendSignUpOtp = catchAsync(async (req, res) => {
 const verifyOtp = catchAsync(async (req, res) => {
   const { email, otp } = req.body;
 
-  const result = await AuthService.verifyOtp(email, otp);
+  await AuthService.verifyOtp(email, otp);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -76,7 +76,8 @@ const verifyOtp = catchAsync(async (req, res) => {
 const resendOtp = catchAsync(async (req, res) => {
   const { email } = req.body;
 
-  const result = await AuthService.resendOtp(email);
+  await AuthService.resendOtp(email, "FORGOT_PASSWORD");
+  // const result = await AuthService.resendOtp(email);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
