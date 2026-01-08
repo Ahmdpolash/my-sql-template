@@ -7,8 +7,8 @@ export const sendEmail = async (to: string, otp: number) => {
     port: 587,
     secure: false,
     auth: {
-      user: config.sendEmail.brevo_user,
-      pass: config.sendEmail.brevo_pass,
+      user: config.smtp.brevo_user,
+      pass: config.smtp.brevo_pass,
     },
   });
 
@@ -62,7 +62,7 @@ export const sendEmail = async (to: string, otp: number) => {
   `;
 
   await transporter.sendMail({
-    from: `"Test Project" <${config.sendEmail.brevo_email}>`,
+    from: `"Test Project" <${config.smtp.brevo_email}>`,
     to,
     subject: "OTP Verification",
     text: `Your OTP code is: ${otp}`,

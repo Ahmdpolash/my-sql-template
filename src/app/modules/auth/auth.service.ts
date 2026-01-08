@@ -7,6 +7,8 @@ import { httpStatus } from "../../utils/httpStatus";
 import prisma from "../../utils/prisma";
 import { hashPassword } from "../../helpers/hashPassword";
 import { OtpService } from "../otp/otp.service";
+import { sendOTPEmail, sendWelcomeEmail } from "../../utils/emailSender";
+import generateOtp from "../../helpers/generateOtp";
 
 // register
 const registerUser = async (payload: User) => {
@@ -36,9 +38,22 @@ const registerUser = async (payload: User) => {
   }
 
   // sent otp
+  const otp = generateOtp();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  await prisma.otp.create({
+    data: {
+      otpCode: otp,
+      expiresAt: expiresAt,
+      userId: result.id,
+    },
+  });
 
   if (result) {
-    await OtpService.sentOtp(payload.email);
+    // await OtpService.sentOtp(payload.email);
+    sendOTPEmail(result.email, String(otp), "SIGNUP").catch((error) => {
+      console.error("Failed to send signup OTP email:", error);
+    });
   }
 
   return result;
@@ -161,11 +176,10 @@ const verifySignUpOtp = async (email: string, otp: number) => {
       },
     });
 
-
-    
-
-
-
+    // sent a welcome email
+    await sendWelcomeEmail(user.email, user.name).catch((error) => {
+      console.error("Failed to send welcome email:", error);
+    });
   });
 
   return null;
@@ -407,7 +421,6 @@ const getMe = async (email: string) => {
 // refresh token
 
 const refreshToken = async (refreshToken: string) => {
-
   if (!refreshToken) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Refresh token is required");
   }

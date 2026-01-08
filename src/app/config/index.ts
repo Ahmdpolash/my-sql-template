@@ -8,6 +8,8 @@ export default {
   port: process.env.PORT || 5000,
   host: process.env.HOST || "localhost",
   databaseUrl: process.env.DATABASE_URL,
+  client_url: process.env.FRONTEND_URL!,
+  backend_url: process.env.BACKEND_URL!,
   jwt: {
     access: {
       secret: process.env.JWT_ACCESS_SECRET,
@@ -18,28 +20,34 @@ export default {
       expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "5y",
     },
   },
+
   superAdmin: {
-    email: process.env.SUPER_ADMIN_EMAIL,
+    email: process.env.SUPER_ADMIN_EMAIL!,
     password: process.env.SUPER_ADMIN_PASSWORD,
   },
-  sendEmail: {
+
+  smtp: {
     brevo_user: process.env.BREVO_USER,
     brevo_pass: process.env.BREVO_PASS,
     brevo_email: process.env.BREVO_EMAIL,
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    from_name: process.env.SMTP_NAME,
   },
-  emailSender: {
-    email: process.env.EMAIL,
-    app_pass: process.env.APP_PASS,
-  },
+
+  otp_expiry_minutes: Number(process.env.OTP_EXPIRY_MINUTES) || 10,
+
   url: {
     backend: process.env.BACKEND_URL || "http://localhost:5000",
     frontend: process.env.FRONTEND_URL || "http://localhost:3000",
     image: process.env.IMAGE_URL,
     file: process.env.FILE_URL,
   },
+
   cloudinary: {
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
-  }
+  },
 };

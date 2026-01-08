@@ -16,6 +16,7 @@ model User {
   role       UserRole   @default(USER)
   status     UserStatus @default(Active)
 
+  provider  String   @default("local")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Otp       Otp[]
@@ -49,3 +50,42 @@ enum UserStatus {
   Inactive
   Banned
 }
+
+/**
+ * id     String @id @default(auto()) @map("_id") @db.ObjectId
+ * userId String @db.ObjectId
+
+
+
+
+ model LoginActivity {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ipAddress  String?
+  userAgent  String?
+  deviceType String? // e.g., "Mobile", "Desktop", "Tablet"
+  browser    String? // e.g., "Chrome", "Safari", "Firefox"
+  os         String? // e.g., "Windows", "macOS", "Android", "iOS"
+  platform   DevicePlatform?
+  location   String? // City, Country (if available)
+
+  loginAt       DateTime @default(now())
+  isSuccessful  Boolean  @default(true)
+  failureReason String? // If login failed
+
+  @@index([userId, loginAt])
+  @@index([userId, isSuccessful])
+  @@map("login_activities")
+}
+
+
+
+
+
+
+
+
+
+ */
