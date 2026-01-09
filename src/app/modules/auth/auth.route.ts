@@ -21,6 +21,9 @@ router.post(
   AuthController.login
 );
 
+// social login 
+router.post('/social-login', AuthController.socialLogin)
+
 // verify signup otp
 router.post("/verify-signup-otp", AuthController.verifySignUpOtp);
 

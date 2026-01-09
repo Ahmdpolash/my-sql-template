@@ -10,6 +10,7 @@ import { hashPassword } from "../../helpers/hashPassword";
 import { sendOTPEmail, sendWelcomeEmail } from "../../utils/emailSender";
 import generateOtp from "../../helpers/generateOtp";
 import { parseUserAgent } from "../../utils/parseUserAgent";
+import { decodeOAuthToken } from "../../utils/decodeOAuthToken";
 
 type OTPType = "SIGNUP" | "FORGOT_PASSWORD";
 
@@ -518,7 +519,69 @@ const refreshToken = async (refreshToken: string) => {
 };
 
 //google login for web
-const googleLogin = async (googleToken: string) => {};
+const socialLogin = async (payload: {
+  token: string;
+  provider: "google" | "apple";
+}) => {
+  const userInfo = decodeOAuthToken(payload.token, payload.provider);
+
+  return prisma.$transaction(async (trx) => {
+    let user = await trx.user.findUnique({
+      where: {
+        email: userInfo.email,
+      },
+      select: userAuthSelect,
+    });
+
+    if (user && user.provider !== payload.provider) {
+      throw new AppError(
+        409,
+        `This email is already registered via ${user.provider}. Please use ${user.provider} login instead.`
+      );
+    }
+
+    if (!user) {
+      user = await trx.user.create({
+        data: {
+          email: userInfo.email,
+          name: userInfo.name,
+          provider: payload.provider,
+          isVerified: true,
+          password: null!,
+        },
+        select: userAuthSelect,
+      });
+    } else {
+      if (user.isDeleted) throw new AppError(409, "User is deleted");
+
+      if (userInfo.picture && user.profilePic !== userInfo.picture) {
+        await trx.user.update({
+          where: {
+            id: user.id,
+          },
+          data: { profilePic: userInfo.picture },
+        });
+      }
+    }
+
+    const accessToken = jwtHelpers.generateJwtToken(
+      { id: user.id, email: user.email, role: user.role },
+      config.jwt.access.secret as string,
+      config.jwt.access.expiresIn as string
+    );
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isVerified: user.isVerified,
+      },
+    };
+  });
+};
 
 /* ============================= LOGIN WITH TRACKING ============================= */
 const testLogin = async (
@@ -649,6 +712,7 @@ export const AuthService = {
   loginUser,
   changePassword,
   getMe,
+  socialLogin,
   refreshToken,
   verifySignUpOtp,
   resendSignUpOtp,

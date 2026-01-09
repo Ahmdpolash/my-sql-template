@@ -38,6 +38,18 @@ const login = catchAsync(async (req, res) => {
   });
 });
 
+// social login
+
+const socialLogin = catchAsync(async (req, res) => {
+  const result = await AuthService.socialLogin(req.body);
+
+  res.json({
+    statusCode: httpStatus.OK,
+    message: "User logged in successfully!",
+    data: result,
+  });
+});
+
 //verify signupt otp
 const verifySignUpOtp = catchAsync(async (req, res) => {
   const { email, otp } = req.body;
@@ -189,4 +201,5 @@ export const AuthController = {
   resendOtp,
   forgetPassword,
   testLogin,
+  socialLogin,
 };
