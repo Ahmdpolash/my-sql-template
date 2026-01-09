@@ -1,4 +1,4 @@
-import { User, UserStatus } from "@prisma/client";
+import { Prisma, User, UserStatus } from "@prisma/client";
 import config from "../../config";
 import AppError from "../../errors/AppError";
 import { passwordCompare } from "../../helpers/comparePasswords";
@@ -6,11 +6,30 @@ import { jwtHelpers } from "../../helpers/jwtHelpers";
 import { httpStatus } from "../../utils/httpStatus";
 import prisma from "../../utils/prisma";
 import { hashPassword } from "../../helpers/hashPassword";
-import { OtpService } from "../otp/otp.service";
+// import { OtpService } from "../otp/otp.service";
 import { sendOTPEmail, sendWelcomeEmail } from "../../utils/emailSender";
 import generateOtp from "../../helpers/generateOtp";
+import { parseUserAgent } from "../../utils/parseUserAgent";
 
 type OTPType = "SIGNUP" | "FORGOT_PASSWORD";
+
+// Reusable selects
+const userBasicSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  isDeleted: true,
+  isVerified: true,
+  status: true,
+} satisfies Prisma.UserSelect;
+
+const userAuthSelect = {
+  ...userBasicSelect,
+  password: true,
+  provider: true,
+  profilePic: true,
+} satisfies Prisma.UserSelect;
 
 // register
 const registerUser = async (payload: User) => {
@@ -218,8 +237,6 @@ const resendSignUpOtp = async (email: string) => {
     });
   });
 
-  await OtpService.sentOtp(user.email);
-
   return {
     message: "New OTP has been sent to your email for email verification.",
   };
@@ -374,13 +391,32 @@ const forgetPassword = async (email: string) => {
     );
   }
 
-  await prisma.otp.deleteMany({
-    where: {
-      userId: user.id,
-    },
-  });
+  await prisma.$transaction(async (trx) => {
+    await trx.otp.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
 
-  await OtpService.sentOtp(user.email);
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    const result = await prisma.otp.create({
+      data: {
+        otpCode: otp,
+        expiresAt: expiresAt,
+        userId: user.id,
+      },
+    });
+
+    if (result) {
+      await sendOTPEmail(user.email, String(otp), "FORGET_PASSWORD").catch(
+        (error) => {
+          console.error("Failed to send email:", error);
+        }
+      );
+    }
+  });
 
   return {
     message: "OTP have sent to your email for Password reset",
@@ -484,6 +520,130 @@ const refreshToken = async (refreshToken: string) => {
 //google login for web
 const googleLogin = async (googleToken: string) => {};
 
+/* ============================= LOGIN WITH TRACKING ============================= */
+const testLogin = async (
+  payload: { email: string; password: string },
+  metadata?: {
+    ipAddress?: string;
+    userAgent?: string;
+  }
+) => {
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { email: payload.email },
+      select: userAuthSelect,
+    });
+
+    // Track failed login attempt
+    if (!user || user.isDeleted) {
+      if (user?.id) {
+        await tx.loginActivity.create({
+          data: {
+            userId: user.id,
+            ipAddress: metadata?.ipAddress,
+            userAgent: metadata?.userAgent,
+            isSuccessful: false,
+            failureReason: "Invalid credentials",
+          },
+        });
+      }
+      throw new AppError(401, "Invalid email or password");
+    }
+
+    if (!user.status) {
+      await tx.loginActivity.create({
+        data: {
+          userId: user.id,
+          ipAddress: metadata?.ipAddress,
+          userAgent: metadata?.userAgent,
+          isSuccessful: false,
+          failureReason: "Account suspended",
+        },
+      });
+      throw new AppError(403, "Your account is suspended");
+    }
+
+    // ✅ Check if user registered via social login
+    if (!user.password || user.provider !== "local") {
+      await tx.loginActivity.create({
+        data: {
+          userId: user.id,
+          ipAddress: metadata?.ipAddress,
+          userAgent: metadata?.userAgent,
+          isSuccessful: false,
+          failureReason: `Social login required (${user.provider})`,
+        },
+      });
+      throw new AppError(
+        400,
+        `This account is registered via ${user.provider}. Please use ${user.provider} login instead.`
+      );
+    }
+
+    const isValid = await passwordCompare(payload.password, user.password);
+    if (!isValid) {
+      await tx.loginActivity.create({
+        data: {
+          userId: user.id,
+          ipAddress: metadata?.ipAddress,
+          userAgent: metadata?.userAgent,
+          isSuccessful: false,
+          failureReason: "Invalid credentials",
+        },
+      });
+      throw new AppError(401, "Invalid email or password");
+    }
+
+    if (!user.isVerified) {
+      await tx.loginActivity.create({
+        data: {
+          userId: user.id,
+          ipAddress: metadata?.ipAddress,
+          userAgent: metadata?.userAgent,
+          isSuccessful: false,
+          failureReason: "Email not verified",
+        },
+      });
+      throw new AppError(403, "Please verify your email first");
+    }
+
+    // Parse user agent for device info
+    const deviceInfo = metadata?.userAgent
+      ? parseUserAgent(metadata.userAgent)
+      : {};
+
+    // Track successful login
+    await tx.loginActivity.create({
+      data: {
+        userId: user.id,
+        ipAddress: metadata?.ipAddress,
+        userAgent: metadata?.userAgent,
+        deviceType: deviceInfo.deviceType,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        platform: deviceInfo.platform,
+        isSuccessful: true,
+      },
+    });
+
+    const accessToken = jwtHelpers.generateJwtToken(
+      { id: user.id, email: user.email, role: user.role },
+      config.jwt.access.secret as string,
+      config.jwt.access.expiresIn as string
+    );
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    };
+  });
+};
+
 export const AuthService = {
   registerUser,
   loginUser,
@@ -496,4 +656,5 @@ export const AuthService = {
   resendOtp,
   forgetPassword,
   resetPassword,
+  testLogin,
 };

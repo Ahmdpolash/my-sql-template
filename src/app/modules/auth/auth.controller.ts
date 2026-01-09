@@ -155,6 +155,27 @@ const refreshToken = catchAsync(async (req, res) => {
   });
 });
 
+/* ============================= LOGIN WITH TRACKING ============================= */
+
+const testLogin = catchAsync(async (req, res) => {
+  // Extract metadata for login tracking
+  const metadata = {
+    ipAddress:
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+      req.socket.remoteAddress ||
+      req.ip,
+    userAgent: req.headers["user-agent"],
+  };
+
+  const result = await AuthService.testLogin(req.body, metadata);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Login successful",
+    data: result,
+  });
+});
+
 export const AuthController = {
   register,
   resetPassword,
@@ -167,4 +188,5 @@ export const AuthController = {
   verifyOtp,
   resendOtp,
   forgetPassword,
+  testLogin,
 };

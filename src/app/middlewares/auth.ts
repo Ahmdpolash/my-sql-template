@@ -33,15 +33,19 @@ const auth = (...requiredRoles: UserRole[]) => {
           email: true,
           role: true,
           status: true,
+          isDeleted: true,
         },
       });
 
       if (!user) {
-        throw new AppError(httpStatus.NOT_FOUND, "This user is not found!");
+        throw new AppError(httpStatus.NOT_FOUND, "User not found!");
       }
 
       if (user.status === "Banned") {
         throw new AppError(httpStatus.FORBIDDEN, "Your account is blocked!");
+      }
+      if (user.isDeleted) {
+        throw new AppError(httpStatus.FORBIDDEN, "Your account is Banned !");
       }
 
       req.user = user as JwtPayload;
