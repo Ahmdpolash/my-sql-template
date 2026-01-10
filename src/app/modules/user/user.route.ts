@@ -1,9 +1,10 @@
-import { Router } from "express";
 import { UserRole } from "@prisma/client";
+import { NextFunction, Request, Response, Router } from "express";
+import { imageUpload } from "../../config/multer-config";
+import AppError from "../../errors/AppError";
 import auth from "../../middlewares/auth";
-import validateRequest from "../../middlewares/validateRequest";
+import { httpStatus } from "../../utils/httpStatus";
 import { UserController } from "./user.controller";
-import { UserValidation } from "./user.validation";
 
 const router = Router();
 
@@ -20,9 +21,23 @@ router.get(
 );
 
 router.patch(
-  "/:userId",
-  auth(UserRole.USER, UserRole.ADMIN, UserRole.SUPER_ADMIN),
-  validateRequest(UserValidation.updateUserValidationSchema),
+  "/update",
+  auth(),
+  imageUpload.single("file"),
+  (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (req.body?.data) {
+        req.body = JSON.parse(req.body.data);
+      }
+      next();
+    } catch {
+      next(
+        new AppError(httpStatus.BAD_REQUEST, "Invalid JSON in 'data' field")
+      );
+    }
+  },
+
+  // validateRequest(UserValidation.updateUserValidationSchema),
   UserController.updateUser
 );
 

@@ -51,15 +51,10 @@ const getUserById = async (userId: string) => {
   return user;
 };
 
-const updateUser = async (
-  userId: string,
-  payload: {
-    fullName?: string;
-    profilePic?: string;
-  }
-) => {
+const updateUser = async (userId: string, payload: Partial<User>) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
+    select: { id: true, profilePic: true },
   });
 
   if (!user) {
@@ -74,6 +69,7 @@ const updateUser = async (
       name: true,
       email: true,
       role: true,
+      profilePic: true,
       isVerified: true,
       createdAt: true,
       updatedAt: true,

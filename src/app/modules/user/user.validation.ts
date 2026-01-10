@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 const updateUserValidationSchema = z.object({
-  body: z.object({
+
     name: z.string().min(1, " name is required").optional(),
     profilePic: z.string().optional(),
-  }),
+
 });
 
 const getAllUsersValidationSchema = z.object({

@@ -25,7 +25,12 @@ const getUserById = catchAsync(async (req, res) => {
 });
 
 const updateUser = catchAsync(async (req, res) => {
-  const result = await UserService.updateUser(req.params.userId, req.body);
+  const id = req.user.id;
+  const file = req.file;
+
+  const upload = { ...req.body, profilePic: file?.path };
+
+  const result = await UserService.updateUser(id, upload);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
