@@ -135,6 +135,9 @@ src/
 - `PATCH /api/v1/users/:userId` - Update user profile
 - `DELETE /api/v1/users/:userId` - Delete user (Admin/Super Admin only)
 - `PATCH /api/v1/users/:userId/role` - Update user role (Super Admin only)
+- 
+## Postman Collection 
+https://decejan-3238424.postman.co/workspace/My-Workspace~6f76ecaa-c747-4666-8e40-94c6def43e34/collection/50971708-e8c2286e-8409-4d86-8d86-c0b24b22d271?action=share&source=copy-link&creator=50971708
 
 ## 🗃️ Database Schema
 
