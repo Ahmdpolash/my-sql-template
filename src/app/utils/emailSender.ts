@@ -479,6 +479,12 @@ export const sendOTPEmail = async (
     CHANGE_PASSWORD: "Change Password Verification",
   };
 
+  if (config.NODE_ENV !== "production") {
+    console.log(`\n========================================`);
+    console.log(`🔑 [DEV OTP] ${type} OTP for ${email}: ${otp}`);
+    console.log(`========================================\n`);
+  }
+
   const htmlContent = generateOTPTemplate(otp, type);
   const textContent = generateOTPPlainText(otp, type);
 

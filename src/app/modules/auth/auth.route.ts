@@ -55,8 +55,4 @@ router.get("/me", auth(), AuthController.getMe);
 
 router.post("/refresh-token", AuthController.refreshToken);
 
-/* ============================= LOGIN WITH TRACKING ============================= */
-
-router.post("/test-login", AuthController.testLogin);
-
 export const AuthRoutes = router;

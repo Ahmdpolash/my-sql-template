@@ -10,11 +10,18 @@ import prisma from "../utils/prisma";
 const auth = (...requiredRoles: UserRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Get authorization token
-      const token = req.headers.authorization;
+      // Get authorization token from cookies or authorization header
+      let token =
+        req.cookies?.token ||
+        req.cookies?.accessToken ||
+        req.headers.authorization;
 
       if (!token) {
         throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized!");
+      }
+
+      if (typeof token === "string" && token.startsWith("Bearer ")) {
+        token = token.split(" ")[1];
       }
 
       // Verify token

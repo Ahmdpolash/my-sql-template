@@ -2,6 +2,10 @@ import { httpStatus } from "../../utils/httpStatus";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { AuthService } from "./auth.service";
+import {
+  accessTokenOptions,
+  refreshTokenOptions,
+} from "../../helpers/jwtHelpers";
 
 // register user
 const register = catchAsync(async (req, res) => {
@@ -22,14 +26,8 @@ const login = catchAsync(async (req, res) => {
 
   const { accessToken, refreshToken, user } = result;
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000,
-  });
-
-  //res.cookie("token", result.accessToken, { httpOnly: true });
+  res.cookie("refreshToken", refreshToken, refreshTokenOptions);
+  res.cookie("token", accessToken, accessTokenOptions);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -39,11 +37,14 @@ const login = catchAsync(async (req, res) => {
 });
 
 // social login
-
 const socialLogin = catchAsync(async (req, res) => {
   const result = await AuthService.socialLogin(req.body);
 
-  res.json({
+  if (result?.accessToken) {
+    res.cookie("token", result.accessToken, accessTokenOptions);
+  }
+
+  sendResponse(res, {
     statusCode: httpStatus.OK,
     message: "User logged in successfully!",
     data: result,
@@ -76,11 +77,12 @@ const resendSignUpOtp = catchAsync(async (req, res) => {
 const verifyOtp = catchAsync(async (req, res) => {
   const { email, otp } = req.body;
 
-  await AuthService.verifyOtp(email, otp);
+  const result = await AuthService.verifyOtp(email, otp);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: "Otp verified successfully",
+    data: result,
   });
 });
 
@@ -128,12 +130,23 @@ const forgetPassword = catchAsync(async (req, res) => {
 
 // reset password
 const resetPassword = catchAsync(async (req, res) => {
+  let token =
+    req.headers.authorization ||
+    req.body?.token ||
+    req.cookies?.resetToken ||
+    req.cookies?.token;
+
+  if (typeof token === "string" && token.startsWith("Bearer ")) {
+    token = token.split(" ")[1];
+  }
+
   const { email, newPassword, confirmPassword } = req.body;
 
   const result = await AuthService.resetPassword(
     email,
     newPassword,
-    confirmPassword
+    confirmPassword,
+    token
   );
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -156,34 +169,13 @@ const getMe = catchAsync(async (req, res) => {
 
 // refresh token
 const refreshToken = catchAsync(async (req, res) => {
-  const { refreshToken } = req.cookies;
+  const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
   const result = await AuthService.refreshToken(refreshToken);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     message: "Access token retrieved successfully!",
-    data: result,
-  });
-});
-
-/* ============================= LOGIN WITH TRACKING ============================= */
-
-const testLogin = catchAsync(async (req, res) => {
-  // Extract metadata for login tracking
-  const metadata = {
-    ipAddress:
-      (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
-      req.socket.remoteAddress ||
-      req.ip,
-    userAgent: req.headers["user-agent"],
-  };
-
-  const result = await AuthService.testLogin(req.body, metadata);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    message: "Login successful",
     data: result,
   });
 });
@@ -200,6 +192,5 @@ export const AuthController = {
   verifyOtp,
   resendOtp,
   forgetPassword,
-  testLogin,
   socialLogin,
 };

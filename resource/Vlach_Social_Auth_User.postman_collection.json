@@ -1,0 +1,584 @@
+{
+  "info": {
+    "_postman_id": "vlach-social-auth-user-collection",
+    "name": "Vlach Social - Auth & User Modules",
+    "description": "Production-ready Postman collection for Vlach Social Backend (Auth, User & Profile Management).\n\nFeatures:\n- Auto-saves Bearer Token on Login to collection variable `token`.\n- Auto-saves Reset Token on Verify OTP to collection variable `resetToken`.\n- Pre-configured headers, query params, and body payloads.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resetToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "1. Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Polash Ahmed\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user. Sends OTP to the provided email address."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Verify Signup OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"otp\": 12345\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-signup-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-signup-otp"]
+            },
+            "description": "Verifies the email address using the received OTP code."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Resend Signup OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-otp/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "resend-otp", "signup"]
+            },
+            "description": "Resends a new OTP for signup verification."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Login User (Auto-saves Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.accessToken) {",
+                  "    pm.collectionVariables.set('token', response.data.accessToken);",
+                  "    if (response.data.user && response.data.user.id) {",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    }",
+                  "    console.log('Access token saved to {{token}}');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Logs in user. Test script automatically extracts accessToken and stores it in {{token}}."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Social Login (Google / Apple)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.accessToken) {",
+                  "    pm.collectionVariables.set('token', response.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"GOOGLE_OR_APPLE_ID_TOKEN_HERE\",\n  \"provider\": \"google\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/social-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "social-login"]
+            },
+            "description": "Authenticates or registers via Google/Apple OAuth token."
+          },
+          "response": []
+        },
+        {
+          "name": "6. Forget Password (Send OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forget-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forget-password"]
+            },
+            "description": "Sends password reset OTP code to user email."
+          },
+          "response": []
+        },
+        {
+          "name": "7. Verify Forgot Password OTP (Auto-saves Reset Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.token) {",
+                  "    pm.collectionVariables.set('resetToken', response.data.token);",
+                  "    console.log('Reset token saved to {{resetToken}}');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"otp\": 12345\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            },
+            "description": "Verifies OTP and returns temporary resetToken (valid for 10 minutes)."
+          },
+          "response": []
+        },
+        {
+          "name": "8. Resend Forgot Password OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-otp/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "resend-otp", "forgot-password"]
+            },
+            "description": "Resends password reset OTP."
+          },
+          "response": []
+        },
+        {
+          "name": "9. Reset Password (with Reset Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{resetToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"newPassword\": \"newPassword123\",\n  \"confirmPassword\": \"newPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
+            },
+            "description": "Resets user password using the verified resetToken in Header or Body."
+          },
+          "response": []
+        },
+        {
+          "name": "10. Change Password (Logged in User)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"123456\",\n  \"newPassword\": \"newSecret789\",\n  \"confirmPassword\": \"newSecret789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/change-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "change-password"]
+            },
+            "description": "Allows authenticated user to change their existing password."
+          },
+          "response": []
+        },
+        {
+          "name": "11. Get My Profile (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Returns current logged in user information including profile details."
+          },
+          "response": []
+        },
+        {
+          "name": "12. Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"YOUR_REFRESH_TOKEN_HERE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh-token"]
+            },
+            "description": "Uses refreshToken from HTTP-only cookie or from request body to generate a fresh accessToken."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. User & Profile Management",
+      "item": [
+        {
+          "name": "1. Update Profile (Form-Data)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "data",
+                  "value": "{\n  \"name\": \"Polash Ahmed\",\n  \"displayName\": \"Polash Vlach\",\n  \"bio\": \"Passionate about cultural heritage and software engineering.\",\n  \"currentCountry\": \"Greece\",\n  \"currentCity\": \"Metsovo\",\n  \"language\": \"Vlach, English\",\n  \"interests\": [\"Folk History\", \"Music\", \"Hiking\"],\n  \"isProfilePrivate\": false\n}",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional profile picture image file"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/update",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "update"]
+            },
+            "description": "Updates user and profile fields using form-data. You can pass JSON string in 'data' field and optionally select an image in 'file' field."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Fetches user and profile details by user ID (Admin/SuperAdmin)."
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get All Users (Paginated & Search)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10&searchTerm=",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "List all active users with pagination and search filter."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Soft Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/soft/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "soft", "{{userId}}"]
+            },
+            "description": "Soft deletes user (sets status to Inactive and isDeleted to true)."
+          },
+          "response": []
+        },
+        {
+          "name": "5. Update User Role (Super Admin Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "role"]
+            },
+            "description": "Promotes or demotes user role (USER, ADMIN, SUPER_ADMIN)."
+          },
+          "response": []
+        },
+        {
+          "name": "6. Hard Delete User (Cascade Profile/Otp)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Hard deletes user record. Cascades deletion to Profile and Otp records."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. File Uploads",
+      "item": [
+        {
+          "name": "1. Upload Single File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "upload"]
+            },
+            "description": "Uploads single file."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Upload Multiple Files",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/files/upload-multiple",
+              "host": ["{{baseUrl}}"],
+              "path": ["files", "upload-multiple"]
+            },
+            "description": "Uploads multiple files (up to 20 files)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

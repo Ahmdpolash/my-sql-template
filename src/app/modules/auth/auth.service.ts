@@ -9,7 +9,6 @@ import { hashPassword } from "../../helpers/hashPassword";
 // import { OtpService } from "../otp/otp.service";
 import { sendOTPEmail, sendWelcomeEmail } from "../../utils/emailSender";
 import generateOtp from "../../helpers/generateOtp";
-import { parseUserAgent } from "../../utils/parseUserAgent";
 import { decodeOAuthToken } from "../../utils/decodeOAuthToken";
 
 type OTPType = "SIGNUP" | "FORGOT_PASSWORD";
@@ -43,8 +42,12 @@ const registerUser = async (payload: User) => {
   if (isUserExists) {
     throw new AppError(
       httpStatus.CONFLICT,
-      `User with email ${payload.email} already Registered`
+      `User with email ${payload.email} already Registered`,
     );
+  }
+
+  if (!payload.password) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Password is required");
   }
 
   // hash password
@@ -95,7 +98,7 @@ const loginUser = async (email: string, password: string) => {
   if (!user.isVerified) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "Your account is not verified. Please verify your account first."
+      "Your account is not verified. Please verify your account first.",
     );
   }
 
@@ -103,14 +106,21 @@ const loginUser = async (email: string, password: string) => {
   if (user.status === UserStatus.Inactive) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "Your account is inactive. Please contact support."
+      "Your account is inactive. Please contact support.",
     );
   }
 
   if (user.status === UserStatus.Banned) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "Your account has been banned. Please contact support."
+      "Your account has been banned. Please contact support.",
+    );
+  }
+
+  if (!user.password) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `This account is registered via ${user.provider || "social login"}. Please use social login.`,
     );
   }
 
@@ -124,13 +134,13 @@ const loginUser = async (email: string, password: string) => {
   const accessToken = jwtHelpers.generateJwtToken(
     { id: user.id, email: user.email, role: user.role },
     config.jwt.access.secret as string,
-    config.jwt.access.expiresIn as string
+    config.jwt.access.expiresIn as string,
   );
 
   const refreshToken = jwtHelpers.generateJwtToken(
     { id: user.id, email: user.email, role: user.role },
     config.jwt.refresh.secret as string,
-    config.jwt.refresh.expiresIn as string
+    config.jwt.refresh.expiresIn as string,
   );
 
   return {
@@ -152,9 +162,6 @@ const verifySignUpOtp = async (email: string, otp: number) => {
     where: {
       email: email,
     },
-    include: {
-      Otp: true,
-    },
   });
 
   if (!user) {
@@ -165,21 +172,25 @@ const verifySignUpOtp = async (email: string, otp: number) => {
     throw new AppError(httpStatus.BAD_REQUEST, "User already verified");
   }
 
-  const otpRecord = user.Otp[0];
+  const otpRecord = await prisma.otp.findFirst({
+    where: {
+      userId: user.id,
+      otpCode: Number(otp),
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
-  // check the otp expiry or not
-  const isValidOtp = otpRecord && otpRecord.expiresAt > new Date();
-  if (!isValidOtp) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "OTP has expired. Please request a new one."
-    );
+  if (!otpRecord) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
   }
 
-  // check otp match
-  const isOtpMatch = otpRecord && otpRecord.otpCode === otp;
-  if (!isOtpMatch) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+  if (otpRecord.expiresAt < new Date()) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "OTP has expired. Please request a new one.",
+    );
   }
 
   await prisma.$transaction(async (trx) => {
@@ -209,35 +220,7 @@ const verifySignUpOtp = async (email: string, otp: number) => {
 
 // resend sign up otp
 const resendSignUpOtp = async (email: string) => {
-  const user = await prisma.user.findUnique({
-    where: {
-      email: email,
-    },
-  });
-
-  if (!user) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      `User with email ${email} not found`
-    );
-  }
-
-  const result = await prisma.$transaction(async (trx) => {
-    await trx.otp.deleteMany({
-      where: {
-        userId: user.id,
-      },
-    });
-
-    // sent otp email
-    const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-    await sendOTPEmail(user.email, String(otp), "SIGNUP").catch((error) => {
-      console.error("Failed to send email:", error);
-    });
-  });
-
+  await resendOtp(email, "SIGNUP");
   return {
     message: "New OTP has been sent to your email for email verification.",
   };
@@ -249,28 +232,31 @@ const verifyOtp = async (email: string, otp: number) => {
     where: {
       email: email,
     },
-    include: {
-      Otp: true,
-    },
   });
+
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
-  const otpRecord = user.Otp[0];
 
-  // check the otp expiry or not
-  const isValidOtp = otpRecord && otpRecord.expiresAt > new Date();
-  if (!isValidOtp) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "OTP has expired. Please request a new one."
-    );
+  const otpRecord = await prisma.otp.findFirst({
+    where: {
+      userId: user.id,
+      otpCode: Number(otp),
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  if (!otpRecord) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
   }
 
-  // check otp match
-  const isOtpMatch = otpRecord && otpRecord.otpCode === otp;
-  if (!isOtpMatch) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+  if (otpRecord.expiresAt < new Date()) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "OTP has expired. Please request a new one.",
+    );
   }
 
   await prisma.otp.deleteMany({
@@ -279,7 +265,14 @@ const verifyOtp = async (email: string, otp: number) => {
     },
   });
 
-  return null;
+  // Generate a short-lived reset token (10 minutes)
+  const resetToken = jwtHelpers.generateJwtToken(
+    { id: user.id, email: user.email, role: "RESET_PASSWORD" },
+    config.jwt.access.secret as string,
+    "10m",
+  );
+
+  return { token: resetToken };
 };
 
 // resent otp (reusable)
@@ -294,7 +287,7 @@ const resendOtp = async (email: string, type: OTPType) => {
   if (!user) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `User with email ${email} not found`
+      `User with email ${email} not found`,
     );
   }
 
@@ -333,7 +326,7 @@ const changePassword = async (
   email: string,
   currentPassword: string,
   newPassword: string,
-  confirmPassword: string
+  confirmPassword: string,
 ) => {
   // Find user
   const user = await prisma.user.findUnique({
@@ -348,19 +341,26 @@ const changePassword = async (
   if (newPassword !== confirmPassword) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "New password and confirm password do not match"
+      "New password and confirm password do not match",
+    );
+  }
+
+  if (!user.password) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Cannot change password for social login account",
     );
   }
 
   // Check current password
   const isCurrentPasswordValid = await passwordCompare(
     currentPassword,
-    user.password
+    user.password,
   );
   if (!isCurrentPasswordValid) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
-      "Current password is incorrect"
+      "Current password is incorrect",
     );
   }
 
@@ -388,7 +388,7 @@ const forgetPassword = async (email: string) => {
   if (!user) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `User With email ${email} not Found`
+      `User With email ${email} not Found`,
     );
   }
 
@@ -414,7 +414,7 @@ const forgetPassword = async (email: string) => {
       await sendOTPEmail(user.email, String(otp), "FORGET_PASSWORD").catch(
         (error) => {
           console.error("Failed to send email:", error);
-        }
+        },
       );
     }
   });
@@ -428,12 +428,13 @@ const forgetPassword = async (email: string) => {
 const resetPassword = async (
   email: string,
   newPassword: string,
-  confirmPassword: string
+  confirmPassword: string,
+  token?: string,
 ) => {
   if (newPassword !== confirmPassword) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "New password and confirm password do not match"
+      "New password and confirm password do not match",
     );
   }
 
@@ -447,9 +448,32 @@ const resetPassword = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
+  // If a reset token is provided, verify it belongs to this user
+  if (token) {
+    let decoded: any;
+    try {
+      decoded = jwtHelpers.verifyToken(
+        token,
+        config.jwt.access.secret as string,
+      );
+    } catch {
+      throw new AppError(
+        httpStatus.UNAUTHORIZED,
+        "Reset token has expired or is invalid",
+      );
+    }
+
+    if (decoded.email !== email && decoded.id !== user.id) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "Invalid reset token for this user",
+      );
+    }
+  }
+
   const hashedPassword = await hashPassword(newPassword);
 
-  const result = await prisma.user.update({
+  await prisma.user.update({
     where: {
       email: email,
     },
@@ -477,6 +501,7 @@ const getMe = async (email: string) => {
       isVerified: true,
       createdAt: true,
       updatedAt: true,
+      profile: true,
     },
   });
 
@@ -497,7 +522,7 @@ const refreshToken = async (refreshToken: string) => {
   // Verify refresh token
   const decoded = jwtHelpers.verifyToken(
     refreshToken,
-    config.jwt.refresh.secret as string
+    config.jwt.refresh.secret as string,
   );
 
   // Check if user exists
@@ -513,7 +538,7 @@ const refreshToken = async (refreshToken: string) => {
   const accessToken = jwtHelpers.generateJwtToken(
     { id: user.id, email: user.email, role: user.role },
     config.jwt.access.secret as string,
-    config.jwt.access.expiresIn as string
+    config.jwt.access.expiresIn as string,
   );
 
   return { accessToken };
@@ -537,7 +562,7 @@ const socialLogin = async (payload: {
     if (user && user.provider !== payload.provider) {
       throw new AppError(
         409,
-        `This email is already registered via ${user.provider}. Please use ${user.provider} login instead.`
+        `This email is already registered via ${user.provider}. Please use ${user.provider} login instead.`,
       );
     }
 
@@ -548,7 +573,7 @@ const socialLogin = async (payload: {
           name: userInfo.name,
           provider: payload.provider,
           isVerified: true,
-          password: null!,
+          password: null,
         },
         select: userAuthSelect,
       });
@@ -568,7 +593,7 @@ const socialLogin = async (payload: {
     const accessToken = jwtHelpers.generateJwtToken(
       { id: user.id, email: user.email, role: user.role },
       config.jwt.access.secret as string,
-      config.jwt.access.expiresIn as string
+      config.jwt.access.expiresIn as string,
     );
 
     return {
@@ -579,130 +604,6 @@ const socialLogin = async (payload: {
         name: user.name,
         role: user.role,
         isVerified: user.isVerified,
-      },
-    };
-  });
-};
-
-/* ============================= LOGIN WITH TRACKING ============================= */
-const testLogin = async (
-  payload: { email: string; password: string },
-  metadata?: {
-    ipAddress?: string;
-    userAgent?: string;
-  }
-) => {
-  return prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({
-      where: { email: payload.email },
-      select: userAuthSelect,
-    });
-
-    // Track failed login attempt
-    if (!user || user.isDeleted) {
-      if (user?.id) {
-        await tx.loginActivity.create({
-          data: {
-            userId: user.id,
-            ipAddress: metadata?.ipAddress,
-            userAgent: metadata?.userAgent,
-            isSuccessful: false,
-            failureReason: "Invalid credentials",
-          },
-        });
-      }
-      throw new AppError(401, "Invalid email or password");
-    }
-
-    if (!user.status) {
-      await tx.loginActivity.create({
-        data: {
-          userId: user.id,
-          ipAddress: metadata?.ipAddress,
-          userAgent: metadata?.userAgent,
-          isSuccessful: false,
-          failureReason: "Account suspended",
-        },
-      });
-      throw new AppError(403, "Your account is suspended");
-    }
-
-    // ✅ Check if user registered via social login
-    if (!user.password || user.provider !== "local") {
-      await tx.loginActivity.create({
-        data: {
-          userId: user.id,
-          ipAddress: metadata?.ipAddress,
-          userAgent: metadata?.userAgent,
-          isSuccessful: false,
-          failureReason: `Social login required (${user.provider})`,
-        },
-      });
-      throw new AppError(
-        400,
-        `This account is registered via ${user.provider}. Please use ${user.provider} login instead.`
-      );
-    }
-
-    const isValid = await passwordCompare(payload.password, user.password);
-    if (!isValid) {
-      await tx.loginActivity.create({
-        data: {
-          userId: user.id,
-          ipAddress: metadata?.ipAddress,
-          userAgent: metadata?.userAgent,
-          isSuccessful: false,
-          failureReason: "Invalid credentials",
-        },
-      });
-      throw new AppError(401, "Invalid email or password");
-    }
-
-    if (!user.isVerified) {
-      await tx.loginActivity.create({
-        data: {
-          userId: user.id,
-          ipAddress: metadata?.ipAddress,
-          userAgent: metadata?.userAgent,
-          isSuccessful: false,
-          failureReason: "Email not verified",
-        },
-      });
-      throw new AppError(403, "Please verify your email first");
-    }
-
-    // Parse user agent for device info
-    const deviceInfo = metadata?.userAgent
-      ? parseUserAgent(metadata.userAgent)
-      : {};
-
-    // Track successful login
-    await tx.loginActivity.create({
-      data: {
-        userId: user.id,
-        ipAddress: metadata?.ipAddress,
-        userAgent: metadata?.userAgent,
-        deviceType: deviceInfo.deviceType,
-        browser: deviceInfo.browser,
-        os: deviceInfo.os,
-        platform: deviceInfo.platform,
-        isSuccessful: true,
-      },
-    });
-
-    const accessToken = jwtHelpers.generateJwtToken(
-      { id: user.id, email: user.email, role: user.role },
-      config.jwt.access.secret as string,
-      config.jwt.access.expiresIn as string
-    );
-
-    return {
-      accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
       },
     };
   });
@@ -721,5 +622,4 @@ export const AuthService = {
   resendOtp,
   forgetPassword,
   resetPassword,
-  testLogin,
 };

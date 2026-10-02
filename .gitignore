@@ -1,9 +1,9 @@
-
+node_modules
 dist
+.env
+.env*.local
 .vscode
 generated
-node_modules  
-.env 
-
-
-.env
+logs/*.log
+uploads/*
+!uploads/.gitkeep

@@ -7,65 +7,62 @@ datasource db {
 }
 
 model User {
-  // id         String     @id @default(auto()) @map("_id") @db.ObjectId
   id         String     @id @default(uuid())
   name       String
   email      String     @unique
-  password   String
+  password   String?
   profilePic String?    @default("")
   isVerified Boolean    @default(false)
   isDeleted  Boolean    @default(false)
   role       UserRole   @default(USER)
   status     UserStatus @default(Active)
 
-  provider        String          @default("local")
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  Otp             Otp[]
-  loginActivities LoginActivity[]
+  provider  String   @default("local")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Otp     Otp[]
+  profile Profile?
 
   @@map("users")
 }
 
+model Profile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  //optional things 
+  displayName    String?
+  bio            String?
+  currentCountry String?
+  currentCity    String?
+  language       String?
+
+  interests        String[] @default([])
+  isProfilePrivate Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_profile")
+}
+
 model Otp {
-  // id          String   @id @default(auto()) @map("_id") @db.ObjectId
   id String @id @default(uuid())
 
   otpCode     Int
   expiresAt   DateTime
   userId      String
-  // userId      String   @db.ObjectId
   minAttempts Int      @default(0)
   maxAttempts Int      @default(4)
   isUsed      Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
   @@map("otps")
-}
-
-model LoginActivity {
-  // id            String          @id @default(uuid()) @map("_id") @db.ObjectId
-  // userId        String          @db.ObjectId
-  id String @id @default(uuid())
-
-  userId        String
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ipAddress     String?
-  userAgent     String?
-  deviceType    String?
-  browser       String?
-  os            String?
-  platform      DevicePlatform?
-  location      String?
-  loginAt       DateTime        @default(now())
-  isSuccessful  Boolean         @default(true)
-  failureReason String?
-
-  @@index([userId, loginAt])
-  @@index([userId, isSuccessful])
-  @@map("login_activities")
 }
 
 enum UserRole {
@@ -79,33 +76,3 @@ enum UserStatus {
   Inactive
   Banned
 }
-
-enum DevicePlatform {
-  WEB
-  ANDROID
-  IOS
-  DESKTOP
-}
-
-/**
- * id     String @id @default(auto()) @map("_id") @db.ObjectId
- * userId String @db.ObjectId
- * model LoginActivity {
- * id     String @id @default(auto()) @map("_id") @db.ObjectId
- * userId String @db.ObjectId
- * user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
- * ipAddress  String?
- * userAgent  String?
- * deviceType String? // e.g., "Mobile", "Desktop", "Tablet"
- * browser    String? // e.g., "Chrome", "Safari", "Firefox"
- * os         String? // e.g., "Windows", "macOS", "Android", "iOS"
- * platform   DevicePlatform?
- * location   String? // City, Country (if available)
- * loginAt       DateTime @default(now())
- * isSuccessful  Boolean  @default(true)
- * failureReason String? // If login failed
- * @@index([userId, loginAt])
- * @@index([userId, isSuccessful])
- * @@map("login_activities")
- * }
- */

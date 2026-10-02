@@ -5,9 +5,12 @@ import prisma from "../../utils/prisma";
 import QueryBuilder from "../../builder/QueryBuilder";
 
 const getAllUsers = async (query: Record<string, unknown>) => {
-  const userQuery = new QueryBuilder(prisma.user, query)
+  const userQuery = new QueryBuilder(prisma.user, {
+    isDeleted: false,
+    ...query,
+  })
     .search(["name", "email"])
-    .select(["id", "email", "name", "profilePic", "status", "role"])
+    .select(["id", "email", "name", "profilePic", "status", "role", "profile"])
     .paginate();
 
   const [result, meta] = await Promise.all([
@@ -15,18 +18,9 @@ const getAllUsers = async (query: Record<string, unknown>) => {
     userQuery.countTotal(),
   ]);
 
-  if (!result.length) {
-    throw new AppError(httpStatus.NOT_FOUND, "No users found!");
-  }
-
-  const data = result.map((user: User) => {
-    const { password, ...rest } = user;
-    return rest;
-  });
-
   return {
     meta,
-    data,
+    data: result,
   };
 };
 
@@ -38,32 +32,76 @@ const getUserById = async (userId: string) => {
       name: true,
       email: true,
       role: true,
+      profilePic: true,
+      status: true,
       isVerified: true,
+      isDeleted: true,
       createdAt: true,
       updatedAt: true,
+      profile: true,
     },
   });
 
-  if (!user) {
+  if (!user || user.isDeleted) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
   return user;
 };
 
-const updateUser = async (userId: string, payload: Partial<User>) => {
+interface IUpdateUserPayload {
+  name?: string;
+  profilePic?: string;
+  displayName?: string;
+  bio?: string;
+  currentCountry?: string;
+  currentCity?: string;
+  language?: string;
+  interests?: string[];
+  isProfilePrivate?: boolean;
+}
+
+const updateUser = async (userId: string, payload: IUpdateUserPayload) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, profilePic: true },
+    select: { id: true, isDeleted: true },
   });
 
-  if (!user) {
+  if (!user || user.isDeleted) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
+  // Separate User fields and Profile fields
+  const { name, profilePic, ...profileData } = payload;
+
+  const userData: Record<string, any> = {};
+  if (name !== undefined) userData.name = name;
+  if (profilePic !== undefined) userData.profilePic = profilePic;
+
+  const cleanProfileData: Record<string, any> = {};
+  for (const [key, value] of Object.entries(profileData)) {
+    if (value !== undefined) {
+      cleanProfileData[key] = value;
+    }
+  }
+
+  const hasProfileUpdates = Object.keys(cleanProfileData).length > 0;
+
   const updatedUser = await prisma.user.update({
     where: { id: userId },
-    data: payload,
+    data: {
+      ...userData,
+      ...(hasProfileUpdates
+        ? {
+            profile: {
+              upsert: {
+                create: { ...cleanProfileData },
+                update: { ...cleanProfileData },
+              },
+            },
+          }
+        : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -71,8 +109,10 @@ const updateUser = async (userId: string, payload: Partial<User>) => {
       role: true,
       profilePic: true,
       isVerified: true,
+      status: true,
       createdAt: true,
       updatedAt: true,
+      profile: true,
     },
   });
 
@@ -99,25 +139,28 @@ const softDeleteUser = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
   });
-  if (!user) {
+  if (!user || user.isDeleted) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
+
   const updatedUser = await prisma.user.update({
     where: { id: userId },
-    data: { status: "Inactive" },
+    data: {
+      status: "Inactive",
+      isDeleted: true,
+    },
     select: {
       id: true,
       name: true,
       email: true,
       role: true,
+      status: true,
+      isDeleted: true,
       isVerified: true,
       createdAt: true,
       updatedAt: true,
     },
   });
-  if (!updatedUser) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
-  }
 
   return updatedUser;
 };

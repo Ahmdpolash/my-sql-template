@@ -49,7 +49,7 @@ router.delete(
 
 // soft delete
 router.delete(
-  "soft/:userId",
+  "/soft/:userId",
   auth(UserRole.ADMIN, UserRole.SUPER_ADMIN),
   UserController.softDeleteUser
 );

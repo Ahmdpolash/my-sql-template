@@ -14,7 +14,6 @@ const uploadSingleFile = catchAsync(async (req, res) => {
 });
 
 // multiple upload
-
 const uploadMultipleFiles = catchAsync(async (req, res) => {
   const result = await FileUploadService.uploadMultipleFiles(req);
 

@@ -1,3 +1,0 @@
-npm i multer-s3
-
-npm install @aws-sdk/lib-storage
